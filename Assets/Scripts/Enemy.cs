@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent (typeof(BoundsCheck))]
 public class Enemy : MonoBehaviour
 {
     [Header("Inscribed")]
@@ -9,10 +10,12 @@ public class Enemy : MonoBehaviour
     public float fireRate = .3f;
     public float health = 10;
     public int score = 100;
+    public float powerUpDropChance = 1f;
 
-    private BoundsCheck bndCheck;
+    protected bool calledShipDestroyed = false;
+    protected BoundsCheck bndCheck;
 
-    private void Awake()
+    void Awake()
     {
         bndCheck = GetComponent<BoundsCheck>();
     }
@@ -45,17 +48,30 @@ public class Enemy : MonoBehaviour
         pos = tempPos;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    void OnCollisionEnter(Collision collision)
     {
         GameObject otherGO = collision.gameObject;
-        if (otherGO.GetComponent<ProjectileHero>() != null)
+        ProjectileHero p = otherGO.GetComponent<ProjectileHero>();
+        if (p != null)
         {
+            if (bndCheck.isOnScreen)
+            {
+                health -= Main.GET_WEAPON_DEFINITION(p.type).damageOnHit;
+                if (health <=0)
+                {
+                    if (!calledShipDestroyed)
+                    {
+                        calledShipDestroyed = true;
+                        Main.SHIP_DESTROYED(this);
+                    }
+                    Destroy(this.gameObject);
+                }
+            }
             Destroy(otherGO);
-            Destroy(gameObject);
         }
         else
         {
-            Debug.Log("enemy hit by non projectilehero: " + otherGO.name);
+            print("enemy hit by non-projectileHero: " + otherGO.name);
         }
     }
 }
